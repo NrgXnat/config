@@ -20,6 +20,7 @@ import org.nrg.config.entities.ConfigurationData;
 import org.nrg.config.exceptions.ConfigServiceException;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.constants.Scope;
+import org.nrg.framework.exceptions.NotFoundException;
 import org.nrg.framework.exceptions.NrgServiceRuntimeException;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.framework.utilities.Reflection;
@@ -33,9 +34,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -380,6 +384,40 @@ public class DefaultConfigService extends AbstractHibernateEntityService<Configu
     public List<Configuration> getHistory(final String toolName, final String path, final Scope scope, final String entityId) {
         return getHistoryImpl(toolName, path, scope, entityId);
     }
+    
+    
+    @Override
+    @Transactional
+	public List<Map<String, String>> findAllConfigs() throws NotFoundException {
+		return  getListConfigData(getTools());
+	}
+
+	@Override
+	@Transactional
+	public List<Configuration> findAllByToolName(String toolName, String projectId) throws NotFoundException {
+		final List<Configuration> configurations = new ArrayList<>(); 
+		final List<Configuration> configs = StringUtils.isBlank(projectId) ? getConfigsByTool(toolName): getConfigsByTool(toolName, Scope.Project, projectId);
+		 if (configs != null) {
+             configurations.addAll(configs);  
+         }else {
+        	 throw new NotFoundException("configurations list wasn't found");
+         }
+		 return configurations;
+	}
+    
+	private List<Map<String, String>> getListConfigData(List<String> tools) throws NotFoundException {
+		  final List<Map<String, String>> list = new ArrayList<>();
+		 if (tools != null) {
+     	 tools.forEach(tool->{
+     		 Map<String, String>map = new HashMap<>();
+     		 map.put(TOOL_NAME, tool);
+     		 list.add(map);
+     	 });
+      }else {
+     	 throw new NotFoundException("config tool list wasn't found");
+      }
+		return list;
+	}
 
     private List<String> getToolsImpl(Scope scope, String entityId) {
         return _dao.getTools(scope, entityId);
@@ -615,4 +653,7 @@ public class DefaultConfigService extends AbstractHibernateEntityService<Configu
     private final ConfigurationDataDAO       _dataDAO;
     private final PlatformTransactionManager _transactionManager;
     private final JdbcTemplate               _jdbcTemplate;
+    private static final String TOOL_NAME = "tool";
+
+	
 }

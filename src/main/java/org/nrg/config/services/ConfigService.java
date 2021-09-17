@@ -13,9 +13,12 @@ import org.nrg.config.entities.Configuration;
 import org.nrg.config.entities.ConfigurationData;
 import org.nrg.config.exceptions.ConfigServiceException;
 import org.nrg.framework.constants.Scope;
+import org.nrg.framework.exceptions.NotFoundException;
 import org.nrg.framework.orm.hibernate.BaseHibernateService;
 
+
 import java.util.List;
+import java.util.Map;
 
 
 public interface ConfigService extends BaseHibernateService<Configuration> {
@@ -488,4 +491,20 @@ public interface ConfigService extends BaseHibernateService<Configuration> {
      * @return A list of the IDs of all projects that have a configuration for the indicated tool.
      */
     List<String> getProjects(String toolName);
+    
+    /**
+     * 
+     * @return
+     * @throws NotFoundException
+     */
+    List<Map<String, String>> findAllConfigs() throws NotFoundException;
+
+    /**
+     * 
+     * @param toolName
+     * @param projectId
+     * @return
+     * @throws NotFoundException
+     */
+	List<Configuration> findAllByToolName(String toolName, String projectId) throws NotFoundException;
 }
