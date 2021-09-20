@@ -418,6 +418,59 @@ public class DefaultConfigService extends AbstractHibernateEntityService<Configu
       }
 		return list;
 	}
+	
+	@Override
+	@Transactional
+	public List<Map<String, String>> findAllProjectConfigs(String projectId) throws NotFoundException {
+	      final List<String> tools;
+		 tools = getTools(Scope.Project, projectId);
+		 return getListConfigData(tools);
+	}
+
+	@Override
+	@Transactional
+	public List<Configuration> findAllByToolNameAndPath(String toolName, String projectId,String path, boolean defaultToSiteWide, String history, String requestVersion) {
+		final List<Configuration> configurations = new ArrayList<>();
+		Integer version = null;
+		if(StringUtils.isNotBlank(requestVersion)){
+			version = Integer.parseInt(requestVersion);
+		}
+		Configuration configuration = null;
+		if (Objects.isNull(projectId)) {
+			projectId = "";
+		}
+		final boolean isSiteWide = StringUtils.isBlank(projectId);
+		if (Objects.isNull(version)) {
+			if (isSiteWide) {
+				configuration = getConfig(toolName, path);
+			} else {
+				configuration = getProjectConfiguration(configuration, toolName, path, projectId, defaultToSiteWide);
+			}
+			if (configuration != null) {
+				configurations.add(configuration);
+			}
+		} else {
+			 configurations.add(isSiteWide ? getConfigByVersion(toolName, path, version) : getConfigByVersion(toolName, path, version, Scope.Project, projectId));
+		}
+		return configurations;
+	}
+	
+	private Configuration getProjectConfiguration(Configuration configuration, String toolName, String path, String projectId, boolean defaultToSiteWide) {
+        try {
+            configuration = getConfig(toolName, path, Scope.Project, projectId);
+            if (configuration == null && defaultToSiteWide) {
+                //if project specific config is missing, allow fail over to site wide config
+                configuration = getConfig(toolName, path);
+            }
+        } catch (Exception e) {
+            // assume project config is missing
+            if (defaultToSiteWide) {
+           	//if project specific config is missing, allow fail over to site wide configService.getConfig(toolName, path))
+                configuration = getConfig(toolName, path);
+            }
+        }
+		return configuration;
+	}
 
     private List<String> getToolsImpl(Scope scope, String entityId) {
         return _dao.getTools(scope, entityId);

@@ -16,7 +16,6 @@ import org.nrg.framework.constants.Scope;
 import org.nrg.framework.exceptions.NotFoundException;
 import org.nrg.framework.orm.hibernate.BaseHibernateService;
 
-
 import java.util.List;
 import java.util.Map;
 
@@ -507,4 +506,27 @@ public interface ConfigService extends BaseHibernateService<Configuration> {
      * @throws NotFoundException
      */
 	List<Configuration> findAllByToolName(String toolName, String projectId) throws NotFoundException;
+	
+	/**
+	 * 
+	 * @param user
+	 * @param projectId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	List<Map<String, String>> findAllProjectConfigs(String projectId) throws NotFoundException;
+
+	/**
+	 * 
+	 * @param toolName
+	 * @param projectId
+	 * @param path
+	 * @param defaultToSiteWide
+	 * @param history
+	 * @param requestVersion
+	 * @return
+	 */
+	List<Configuration> findAllByToolNameAndPath(String toolName, String projectId,  String path, boolean defaultToSiteWide,  String history, String requestVersion);
+
+	
 }
