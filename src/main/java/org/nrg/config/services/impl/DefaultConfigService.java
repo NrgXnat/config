@@ -15,6 +15,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.hibernate.Hibernate;
 import org.nrg.config.daos.ConfigurationDAO;
 import org.nrg.config.daos.ConfigurationDataDAO;
+import org.nrg.config.dtos.Config;
 import org.nrg.config.entities.Configuration;
 import org.nrg.config.entities.ConfigurationData;
 import org.nrg.config.exceptions.ConfigServiceException;
@@ -41,6 +42,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.nrg.config.entities.Configuration.DISABLED_STRING;
@@ -455,6 +458,114 @@ public class DefaultConfigService extends AbstractHibernateEntityService<Configu
 		return configurations;
 	}
 	
+	@Override
+	@Transactional
+	public void updateConfig(String xnatUser, Config config, String toolName, String projectId,  String path, String status, String reason, String unversioned ) throws ConfigServiceException {
+		fixAnonPath(toolName, projectId, path);
+		
+		boolean handledStatus = false;
+		
+		statusUpdate(xnatUser, toolName, projectId, path, status, handledStatus, reason);
+		 
+		boolean hasBodyContent = (config != null && Objects.nonNull(config.getContents()));
+
+		 final String contents = hasBodyContent ? getBodyContents(config) : "";
+         if (contents == null) {
+             throw new ConfigServiceException("No contents provided");
+         }
+
+         final Configuration prevConfig = StringUtils.isBlank(projectId) ? getConfig(toolName, path) : getConfig(toolName, path, Scope.Project, projectId);
+         
+         saveAndUpdateConfigration(xnatUser, contents,prevConfig,reason,toolName,path,unversioned,projectId);
+
+	}
+	
+	@Override
+	public void deleteConfig( String toolName, String projectId, String path) throws ConfigServiceException {
+//		 if (StringUtils.isBlank(projectId)) {
+//             if (!Roles.isSiteAdmin(user)) {
+//                 final String message = String.format("User %s is not an administrator and can't disable the configuration setting %s for the tool %s", user.getUsername(), path, toolName);
+//                 log.info(message);
+//                 throw new InsufficientPrivilegesException(message);
+//             }
+//             disable(user.getLogin(), "Disabling this setting", toolName, path);
+//         } else {
+//        	 try {
+//             if (!(Permissions.canDelete(user, "xnat:subjectData/project", projectId) || Roles.isSiteAdmin(user))) {  //Users should be able to delete project config if have project edit permissions or are site admins. Otherwise they are forbidden.
+//                 final String message = String.format("User %s can not access project %s to modify configuration setting %s for the tool %s", user.getUsername(), projectId, path, toolName);
+//                 log.info(message);
+//                 throw new InsufficientPrivilegesException(message);
+//				}
+//			} catch (Exception e) {
+//			}
+//			disable(user.getLogin(), "Disabling this setting", toolName, path, Scope.Project, projectId);
+//		}	
+	}
+	
+	private void saveAndUpdateConfigration(String xnatUser, String contents, Configuration prevConfig, String reason, String toolName, String path, String unversioned, String projectId) throws ConfigServiceException {
+		 if (prevConfig != null && contents.equals(prevConfig.getContents())) {
+       	 return ;
+        } else {
+            //save/update the configuration
+            if (StringUtils.isBlank(unversioned)) {
+               replaceConfig(xnatUser, reason, toolName, path, contents, StringUtils.isBlank(projectId) ? Scope.Site : Scope.Project, projectId);
+            } else {
+                boolean isUnversioned = Boolean.parseBoolean(unversioned);
+                replaceConfig(xnatUser, reason, toolName, path, isUnversioned, contents, StringUtils.isBlank(projectId) ? Scope.Site : Scope.Project, projectId);
+            }
+            if(projectId==null){
+                //DefaultAnonUtils.invalidateSitewideAnonCache();
+            }
+        }
+	}
+	
+	private String getBodyContents(Config config) {
+        if (config != null) {
+            return config.getContents();
+        }
+		return null; 
+    }
+	
+	private void statusUpdate(String  xnatUser, String toolName, String projectId, String path, String status, boolean handledStatus, String reason) throws ConfigServiceException {
+		if (StringUtils.isNotBlank(status)) {
+            final Matcher matcher = REGEX_ENABLED_VALUES.matcher(status);
+            // Add support for true or false to make compatible with generic controls in settingsManager.js.
+            if (!matcher.matches() && !status.equals("true") && !status.equals("false")) {
+            	//throw new DataFormatException( "Only valid values for the status flag are enabled or true and disabled or false: " + status);
+            }
+            if ("enabled".equals(status) || "true".equals(status)) {
+                if (StringUtils.isBlank(projectId)) {
+                     enable(xnatUser, reason, toolName, path);
+                } else {
+                    enable(xnatUser, reason, toolName, path, Scope.Project, projectId);
+                }
+                handledStatus = true;
+            } else {
+                if (StringUtils.isBlank(projectId)) {
+                    disable(xnatUser, reason, toolName, path);
+                } else {
+                    disable(xnatUser, reason, toolName, path, Scope.Project, projectId);
+                }
+                return ;
+            }
+            
+            if(StringUtils.isBlank(projectId)) {
+               // DefaultAnonUtils.invalidateSitewideAnonCache();
+            }
+        }
+	}
+	
+	private void fixAnonPath(String toolName, String projectId, String path) {
+        //This is a bit of a hack, but doing the proper fix would introduce risk in the anonymization feature.  Which would be better done in a feature release, then a bug fix release.
+        //The anon feature pre-dated the config service, but was migrated to use the config service for storage of the anonymization script.
+        //However, it *appears* that the 'path' being set when the anonymization file is added (DicomEdit.buildScriptPath) is incorrect.  It is has a / at the beginning of the path, whereas other scripts in the config service don't.
+        //So the ConfigResource correctly creates the path without the / at the beginning, but that fails to match the entry stored in the service by DicomEdit.  DicomEdit should be fixed, but that would introduce a lot of headaches.
+        //So, for now, we'll just hack ConfigResource to support the erroneous path in this one use case.
+        if (toolName != null && StringUtils.equals("anon", toolName) && projectId != null && StringUtils.equals("projects/" + projectId, path)) {
+            path = "/projects/" + projectId;
+        }
+    }
+	
 	private Configuration getProjectConfiguration(Configuration configuration, String toolName, String path, String projectId, boolean defaultToSiteWide) {
         try {
             configuration = getConfig(toolName, path, Scope.Project, projectId);
@@ -707,6 +818,7 @@ public class DefaultConfigService extends AbstractHibernateEntityService<Configu
     private final PlatformTransactionManager _transactionManager;
     private final JdbcTemplate               _jdbcTemplate;
     private static final String TOOL_NAME = "tool";
+    private static final Pattern REGEX_ENABLED_VALUES = Pattern.compile("(en|dis)abled");
 
 	
 }
