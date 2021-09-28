@@ -9,7 +9,6 @@
 
 package org.nrg.config.services;
 
-import org.nrg.config.dtos.Config;
 import org.nrg.config.entities.Configuration;
 import org.nrg.config.entities.ConfigurationData;
 import org.nrg.config.exceptions.ConfigServiceException;
@@ -532,7 +531,7 @@ public interface ConfigService extends BaseHibernateService<Configuration> {
 	/**
 	 * 
 	 * @param xnatUser
-	 * @param config
+	 * @param content
 	 * @param toolName
 	 * @param projectId
 	 * @param path
@@ -541,7 +540,7 @@ public interface ConfigService extends BaseHibernateService<Configuration> {
 	 * @param unversioned
 	 * @throws ConfigServiceException
 	 */
-	void updateConfig(String xnatUser, Config config, String toolName, String projectId,  String path, String status, String reason, String unversioned ) throws ConfigServiceException;
+	void updateConfig(String xnatUser, String content, String toolName, String projectId,  String path, String status, String reason, String unversioned ) throws ConfigServiceException;
 	
 	/**
 	 * 

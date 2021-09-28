@@ -15,7 +15,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.hibernate.Hibernate;
 import org.nrg.config.daos.ConfigurationDAO;
 import org.nrg.config.daos.ConfigurationDataDAO;
-import org.nrg.config.dtos.Config;
 import org.nrg.config.entities.Configuration;
 import org.nrg.config.entities.ConfigurationData;
 import org.nrg.config.exceptions.ConfigServiceException;
@@ -460,24 +459,23 @@ public class DefaultConfigService extends AbstractHibernateEntityService<Configu
 	
 	@Override
 	@Transactional
-	public void updateConfig(String xnatUser, Config config, String toolName, String projectId,  String path, String status, String reason, String unversioned ) throws ConfigServiceException {
+	public void updateConfig(String xnatUser,String content, String toolName, String projectId,  String path, String status, String reason, String unversioned ) throws ConfigServiceException {
 		fixAnonPath(toolName, projectId, path);
 		
 		boolean handledStatus = false;
 		
 		statusUpdate(xnatUser, toolName, projectId, path, status, handledStatus, reason);
-		 
-		boolean hasBodyContent = (config != null && Objects.nonNull(config.getContents()));
+		
+			boolean hasBodyContent = (StringUtils.isBlank(content) && Objects.nonNull(content));
 
-		 final String contents = hasBodyContent ? getBodyContents(config) : "";
-         if (contents == null) {
-             throw new ConfigServiceException("No contents provided");
-         }
-
+			 final String contents = hasBodyContent ? getBodyContents(content) : "";
+	         if (StringUtils.isBlank(contents)) {
+	             throw new ConfigServiceException("No contents provided");
+	         }
+		
          final Configuration prevConfig = StringUtils.isBlank(projectId) ? getConfig(toolName, path) : getConfig(toolName, path, Scope.Project, projectId);
          
          saveAndUpdateConfigration(xnatUser, contents,prevConfig,reason,toolName,path,unversioned,projectId);
-
 	}
 	
 	@Override
@@ -519,9 +517,9 @@ public class DefaultConfigService extends AbstractHibernateEntityService<Configu
         }
 	}
 	
-	private String getBodyContents(Config config) {
-        if (config != null) {
-            return config.getContents();
+	private String getBodyContents(String contents) {
+        if (contents != null) {
+            return contents;
         }
 		return null; 
     }
