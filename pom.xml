@@ -14,7 +14,7 @@
     <parent>
         <groupId>org.nrg</groupId>
         <artifactId>parent</artifactId>
-        <version>1.8.6</version>
+        <version>1.8.7-RC-SNAPSHOT</version>
     </parent>
 
     <artifactId>config</artifactId>
@@ -156,9 +156,6 @@
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
-            <!-- plugin>
-                <artifactId>maven-jarsigner-plugin</artifactId>
-            </plugin -->
             <plugin>
                 <artifactId>maven-source-plugin</artifactId>
             </plugin>
@@ -167,6 +164,9 @@
             </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Xmx8g</argLine>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
