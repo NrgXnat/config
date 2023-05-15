@@ -9,11 +9,6 @@
 
 package org.nrg.config;
 
-import static org.junit.Assert.*;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.nrg.config.configuration.NrgConfigTestConfiguration;
@@ -26,42 +21,32 @@ import org.nrg.config.listeners.FooPropertyLevelListener;
 import org.nrg.config.listeners.SiteLevelListener;
 import org.nrg.config.services.SiteConfigurationService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.test.annotation.Rollback;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.transaction.annotation.Transactional;
 
-import javax.annotation.Resource;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = NrgConfigTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class PrefsBasedSiteConfigurationServiceTests {
+    private static final String ADMIN_USER = "admin";
 
-    @Before
-    public void setUp() throws SiteConfigurationException {
-        _service.updateSiteConfiguration(_configFilesLocations);
+    private SiteConfigurationService _service;
+
+    @Autowired
+    public void setService(final SiteConfigurationService prefsBasedSiteConfigurationService) {
+        _service = prefsBasedSiteConfigurationService;
     }
 
-    @After
-    public void tearDown() {
-        // Clear out the contents of the service. It caches things for performance, but this causes data contamination
-        // for subsequent tests. The transactional boundaries from the test class @Transactional* annotations will clear
-        // out the database.
-        _service.resetSiteConfiguration();
-        DefaultNamespacePropertyLevelListener.resetInvokedCount();
-        FooNamespaceLevelListener.resetInvokedCount();
-        FooPropertyLevelListener.resetInvokedCount();
-        SiteLevelListener.resetInvokedCount();
-    }
-
-    @SuppressWarnings("Duplicates")
     @Test
-    @Ignore("This test broke with the upgrade to Hibernate and caching for unclear reasons")
     public void initSiteConfigurationSuccess() throws SiteConfigurationException {
         final Properties props = _service.getSiteConfiguration();
         assertNotNull(props);
@@ -150,18 +135,4 @@ public class PrefsBasedSiteConfigurationServiceTests {
         assertEquals(1, DefaultNamespacePropertyLevelListener.getInvokedCount());
         assertEquals(3, SiteLevelListener.getInvokedCount());
     }
-
-    @Resource(name = "configFilesLocations")
-    public void setConfigFilesLocations(final List<String> configFilesLocations) {
-        _configFilesLocations.addAll(configFilesLocations);
-    }
-
-    private static final String ADMIN_USER = "admin";
-
-    @Autowired
-    @Qualifier("prefsBasedSiteConfigurationService")
-    private SiteConfigurationService _service;
-
-    private final List<String> _configFilesLocations = new ArrayList<>();
-
 }
