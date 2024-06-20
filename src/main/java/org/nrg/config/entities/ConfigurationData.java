@@ -12,11 +12,10 @@ package org.nrg.config.entities;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 import org.nrg.framework.orm.hibernate.annotations.Auditable;
 
+import javax.persistence.Cacheable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -26,9 +25,11 @@ import java.util.Set;
 @SuppressWarnings("deprecation")
 @Auditable
 @Entity
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
+@Cacheable
 @NoArgsConstructor
 public class ConfigurationData extends AbstractHibernateEntity {
+    private static final long serialVersionUID = -6876314910773854130L;
+
     public static final int MAX_FILE_LENGTH = 1073741824; // 1 GB
 
     public ConfigurationData(final String contents) {
@@ -44,6 +45,7 @@ public class ConfigurationData extends AbstractHibernateEntity {
         this.contents = contents;
     }
 
+    @SuppressWarnings("unused")
     @OneToMany(fetch = FetchType.EAGER)
     public Set<Configuration> getConfigurations() {
         return configurations;

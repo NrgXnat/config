@@ -15,10 +15,10 @@ import org.junit.runner.RunWith;
 import org.nrg.config.configuration.NrgConfigTestConfiguration;
 import org.nrg.config.exceptions.ConfigServiceException;
 import org.nrg.config.services.UserConfigurationService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import javax.inject.Inject;
 import java.io.IOException;
 import java.util.Hashtable;
 import java.util.Map;
@@ -29,6 +29,13 @@ import static org.junit.Assert.assertNotNull;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = NrgConfigTestConfiguration.class)
 public class UserConfigurationServiceTests {
+    private UserConfigurationService _service;
+
+    @Autowired
+    public void setUserConfigurationService(final UserConfigurationService service) {
+        _service = service;
+    }
+
     @Test
     public void testCreateUserConfiguration() throws IOException, ConfigServiceException {
         final Map<String, String> configuration = new Hashtable<>();
@@ -41,7 +48,4 @@ public class UserConfigurationServiceTests {
         assertNotNull(retrieved);
         assertEquals(marshaled, retrieved);
     }
-
-    @Inject
-    private UserConfigurationService _service;
 }
