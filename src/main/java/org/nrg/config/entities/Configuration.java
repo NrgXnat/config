@@ -11,21 +11,27 @@ package org.nrg.config.entities;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.nrg.framework.constants.Scope;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 import org.nrg.framework.orm.hibernate.annotations.Auditable;
 
-import javax.persistence.*;
+import javax.persistence.Cacheable;
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.ManyToOne;
+import javax.persistence.Transient;
 import java.util.Objects;
 import java.util.Properties;
 
 @SuppressWarnings("deprecation")
 @Auditable
 @Entity
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
+@Cacheable
 public class Configuration extends AbstractHibernateEntity {
+    private static final long serialVersionUID = -64165076128434789L;
+
     public static final String ENABLED_STRING  = "enabled";
     public static final String DISABLED_STRING = "disabled";
 
