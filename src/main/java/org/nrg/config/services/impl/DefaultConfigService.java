@@ -402,7 +402,7 @@ public class DefaultConfigService extends AbstractHibernateEntityService<Configu
 
     private Configuration getConfigImpl(final String toolName, final String path, final Scope scope, final String entityId) {
         final List<Configuration> list = getHistoryImpl(toolName, path, scope, entityId);
-        return list != null && !list.isEmpty() ? list.get(list.size() - 1) : null;
+        return list != null && !list.isEmpty() ? list.getLast() : null;
     }
 
     private String getConfigContentsImpl(String toolName, String path, Scope scope, String entityId) {
