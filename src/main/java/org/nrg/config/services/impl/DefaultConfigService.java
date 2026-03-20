@@ -10,7 +10,6 @@
 package org.nrg.config.services.impl;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.beanutils.BeanComparator;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.Hibernate;
 import org.nrg.config.daos.ConfigurationDAO;
@@ -34,6 +33,7 @@ import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -46,8 +46,10 @@ import static org.nrg.config.entities.Configuration.ENABLED_STRING;
 @Service
 @Slf4j
 public class DefaultConfigService extends AbstractHibernateEntityService<Configuration, ConfigurationDAO> implements ConfigService {
-    public static BeanComparator<Configuration> ConfigComparatorByCreateDate = new BeanComparator<>("created");
-    public static BeanComparator<Configuration> ConfigComparatorByVersion    = new BeanComparator<>("version");
+    public static final Comparator<Configuration> ConfigComparatorByCreateDate =
+            Comparator.comparing(Configuration::getCreated, Comparator.nullsFirst(Comparator.naturalOrder()));
+    public static final Comparator<Configuration> ConfigComparatorByVersion =
+            Comparator.comparingInt(Configuration::getVersion);
 
     public static final boolean UNVERSIONED_DEFAULT = false;  // The default is to version, therefore "unversioned" should be false
 
@@ -401,8 +403,14 @@ public class DefaultConfigService extends AbstractHibernateEntityService<Configu
     }
 
     private Configuration getConfigImpl(final String toolName, final String path, final Scope scope, final String entityId) {
-        final List<Configuration> list = getHistoryImpl(toolName, path, scope, entityId);
-        return list != null && !list.isEmpty() ? list.get(list.size() - 1) : null;
+        if (StringUtils.isBlank(entityId) && scope != Scope.Site) {
+            throw new NrgServiceRuntimeException("You've specified scope " + scope + " without an entity ID. Scope MUST be set to Site if entity ID is blank.");
+        }
+        final List<Configuration> list = _dao.findByToolPathProject(toolName, path, scope, entityId);
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        return list.stream().max(ConfigComparatorByCreateDate).orElse(null);
     }
 
     private String getConfigContentsImpl(String toolName, String path, Scope scope, String entityId) {
