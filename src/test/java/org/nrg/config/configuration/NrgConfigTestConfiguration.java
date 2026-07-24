@@ -10,6 +10,7 @@
 package org.nrg.config.configuration;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.nrg.config.util.H2PostgresCompatibility;
 import org.nrg.framework.configuration.FrameworkConfig;
 import org.nrg.framework.orm.hibernate.HibernateEntityPackageList;
 import org.nrg.framework.test.OrmTestConfiguration;
@@ -22,6 +23,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -49,5 +51,13 @@ public class NrgConfigTestConfiguration {
     @Bean
     public HibernateEntityPackageList configHibernateEntityPackageList() {
         return new HibernateEntityPackageList("org.nrg.config.entities");
+    }
+
+    @Bean
+    public boolean h2PostgresCompatibilityFunctions(final JdbcTemplate template) {
+        // DefaultConfigService.lockForReplace() uses Postgres-only functions; H2 needs aliases for the SQL
+        // to parse. See H2PostgresCompatibility.
+        H2PostgresCompatibility.register(template);
+        return true;
     }
 }
